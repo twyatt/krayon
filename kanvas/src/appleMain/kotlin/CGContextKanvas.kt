@@ -3,6 +3,8 @@ package com.juul.krayon.kanvas
 import com.juul.krayon.color.Color
 import kotlinx.cinterop.CPointerVarOf
 import kotlinx.cinterop.value
+import platform.CoreGraphics.CGAffineTransformMakeScale
+import platform.CoreGraphics.CGBitmapContextGetHeight
 import platform.CoreGraphics.CGContextAddPath
 import platform.CoreGraphics.CGContextBeginPath
 import platform.CoreGraphics.CGContextClip
@@ -11,8 +13,23 @@ import platform.CoreGraphics.CGContextRestoreGState
 import platform.CoreGraphics.CGContextRotateCTM
 import platform.CoreGraphics.CGContextSaveGState
 import platform.CoreGraphics.CGContextScaleCTM
+import platform.CoreGraphics.CGContextSetTextMatrix
 import platform.CoreGraphics.CGContextTranslateCTM
 import kotlin.math.PI
+
+public fun CGContextRef.setCoordinatesInvertedVertically() {
+    val height = CGBitmapContextGetHeight(this) // todo: throw if 0
+
+    // todo: set
+    CGContextTranslateCTM(this, 0.0, height.toDouble())
+    CGContextScaleCTM(this, 1.0, -1.0)
+}
+
+private val invertY = CGAffineTransformMakeScale(1.0, -1.0)
+
+public fun CGContextRef.setTextInvertedVertically() {
+    CGContextSetTextMatrix(this, invertY)
+}
 
 /**
  * It is the calling code's responsibility to ensure that [unmanagedContext] outlives this object.
@@ -32,9 +49,18 @@ public class CGContextKanvas(
         height: Double,
     ) : this(unmanagedContext = ptr.value!!, width, height)
 
+    init {
+        CGContextSetTextMatrix(unmanagedContext, invertY)
+    }
+
     override val width: Float = width.toFloat()
 
     override val height: Float = height.toFloat()
+
+    public fun invertY() {
+        CGContextTranslateCTM(unmanagedContext, 0.0, height.toDouble())
+        CGContextScaleCTM(unmanagedContext, 1.0, -1.0)
+    }
 
     override fun drawArc(left: Float, top: Float, right: Float, bottom: Float, startAngle: Float, sweepAngle: Float, paint: Paint) {
         drawAsPath(paint) {
